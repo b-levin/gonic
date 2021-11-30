@@ -370,3 +370,29 @@ func TestMultiFolderWithSharedArtist(t *testing.T) {
 		is.True(album.Duration > 0)
 	}
 }
+
+func TestSymlinkedAlbum(t *testing.T) {
+	t.Parallel()
+	is := is.New(t)
+	m := mockfs.NewWithDirs(t, []string{"scan"})
+	defer m.CleanUp()
+
+	m.AddItemsPrefixWithCovers("temp")
+
+	scanAlbum0 := filepath.Join(m.TmpDir(), "scan", "artist-0", "album-0")
+	tempAlbum0 := filepath.Join(m.TmpDir(), "temp", "artist-0", "album-0")
+	m.Symlink(tempAlbum0, scanAlbum0)
+
+	m.ScanAndClean()
+	m.LogTracks()
+	m.LogAlbums()
+
+	var track db.Track
+	is.NoErr(m.DB().Preload("Album").Find(&track).Error) // track exists
+	is.True(track.Album.Cover != "")                     // track exists
+
+	info, err := os.Stat(track.AbsPath())
+	is.NoErr(err)                     // track resolves
+	is.True(!info.IsDir())            // track resolves
+	is.True(!info.ModTime().IsZero()) // track resolves
+}
