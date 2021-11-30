@@ -119,6 +119,24 @@ func (m *MockFS) RemoveAll(path string) {
 	}
 }
 
+func (m *MockFS) Symlink(src, dest string) {
+	if err := os.MkdirAll(filepath.Dir(dest), os.ModePerm); err != nil {
+		m.t.Fatalf("mkdir: %v", err)
+	}
+	if err := os.Symlink(src, dest); err != nil {
+		m.t.Fatalf("symlink: %v", err)
+	}
+	for k, v := range m.reader.tags {
+		dir, file := filepath.Split(k)
+		dir = filepath.Clean(dir)
+		if dir != src {
+			continue
+		}
+		destFile := filepath.Join(dest, file)
+		m.reader.tags[destFile] = v
+	}
+}
+
 func (m *MockFS) LogItems() {
 	m.t.Logf("\nitems")
 	var items int

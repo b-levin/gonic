@@ -379,7 +379,7 @@ func TestSymlinkedAlbum(t *testing.T) {
 
 	m.AddItemsPrefixWithCovers("temp")
 
-	scanAlbum0 := filepath.Join(m.TmpDir(), "scan", "artist-0", "album-0")
+	scanAlbum0 := filepath.Join(m.TmpDir(), "scan", "artist-sym", "album-0")
 	tempAlbum0 := filepath.Join(m.TmpDir(), "temp", "artist-0", "album-0")
 	m.Symlink(tempAlbum0, scanAlbum0)
 
@@ -388,8 +388,10 @@ func TestSymlinkedAlbum(t *testing.T) {
 	m.LogAlbums()
 
 	var track db.Track
-	is.NoErr(m.DB().Preload("Album").Find(&track).Error) // track exists
-	is.True(track.Album.Cover != "")                     // track exists
+	is.NoErr(m.DB().Preload("Album.Parent").Find(&track).Error) // track exists
+	is.True(track.Album != nil)                                 // track has album
+	is.True(track.Album.Cover != "")                            // album has cover
+	is.Equal(track.Album.Parent.RightPath, "artist-sym")        // artist is sym
 
 	info, err := os.Stat(track.AbsPath())
 	is.NoErr(err)                     // track resolves
